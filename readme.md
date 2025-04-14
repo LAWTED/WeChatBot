@@ -14,7 +14,7 @@
 <img src="Demo_Image/4.png" alt="示例图片4" width="900px">
 
 # 版本号
-- v3.13
+- v3.14
 
 # 目前支持的功能
 1. 自动回复
@@ -51,8 +51,17 @@
 # 联系我
 1. 邮箱 iwyxdxl@gmail.com
 2. QQ 2025128651
-   
+
 # 声明
 - 本项目基于 [KouriChat](https://github.com/KouriChat/KouriChat) 修改，遵循 **GNU GPL-3.0 或更高版本** 许可证。
 - 本项目使用了 [wxauto](https://github.com/cluic/wxauto) 代码用于微信自动化控制。
 - 原项目版权归属：umaru (2025)。
+
+# 集成说明
+- 本项目现已支持作为Git子模块集成到其他项目中
+- 如需集成，请使用以下命令：
+  ```bash
+  git submodule add https://github.com/LAWTED/WeChatBot.git wxbot
+  ```
+- 集成后可通过子模块方式管理版本和更新
+- 最后更新：2024年4月15日
