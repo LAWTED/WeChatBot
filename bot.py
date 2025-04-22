@@ -1104,8 +1104,11 @@ def send_welcome_messages():
             if os.path.exists(log_file) and os.path.getsize(log_file) > 0:
                 has_history = True
 
-        # 如果没有历史记录，发送欢迎消息
-        if not has_history and not is_quiet_time():
+        # 检查Supabase数据库中是否有学生信息
+        has_student_info = check_student_info_in_supabase(user)
+
+        # 如果没有历史记录且不是安静时间，并且数据库中没有该用户信息，才发送欢迎消息
+        if not has_history and not is_quiet_time() and not has_student_info:
             logger.info(f"为用户 {user} 发送欢迎消息")
 
             # 按顺序发送三条欢迎消息
@@ -1139,6 +1142,36 @@ def send_welcome_messages():
 
             # 重置用户计时器
             reset_user_timer(user)
+        elif has_student_info:
+            logger.info(f"用户 {user} 在Supabase数据库中已有信息，跳过欢迎消息")
+
+def check_student_info_in_supabase(user_id):
+    """检查Supabase数据库中是否存在用户信息"""
+    try:
+        # 构建请求URL和头部
+        supabase_url = "https://pabxfssvnndtubeyejhp.supabase.co"
+        headers = {
+            "apikey": SUPABASE_API_KEY,
+            "Authorization": f"Bearer {SUPABASE_API_KEY}",
+            "Content-Type": "application/json"
+        }
+
+        # 发送请求查询用户信息
+        response = requests.get(
+            f"{supabase_url}/rest/v1/studentinfo?userid=eq.{user_id}&select=userid",
+            headers=headers
+        )
+
+        # 检查是否找到用户
+        if response.status_code == 200:
+            data = response.json()
+            return len(data) > 0
+        else:
+            logger.error(f"Supabase API 请求失败: {response.status_code}")
+            return False
+    except Exception as e:
+        logger.error(f"检查Supabase用户信息失败: {str(e)}")
+        return False
 
 def main():
 
