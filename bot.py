@@ -1159,8 +1159,6 @@ def main():
         global wx
         wx = WeChat()
 
-        # 发送欢迎消息给没有对话历史的用户
-        send_welcome_messages()
 
         listener_thread = threading.Thread(target=message_listener)
         listener_thread.daemon = True
@@ -1188,6 +1186,10 @@ def main():
             logger.info("已启动自动消息检查线程")
 
         logger.info("\033[32m开始运行BOT...\033[0m")
+
+
+        # 发送欢迎消息给没有对话历史的用户
+        send_welcome_messages()
 
         while True:
             time.sleep(wait)
