@@ -1146,31 +1146,27 @@ def send_welcome_messages():
             logger.info(f"用户 {user} 在Supabase数据库中已有信息，跳过欢迎消息")
 
 def check_student_info_in_supabase(user_id):
-    """检查Supabase数据库中是否存在用户信息"""
+    """检查API中是否存在用户信息"""
     try:
-        # 构建请求URL和头部
-        supabase_url = "https://pabxfssvnndtubeyejhp.supabase.co"
-        headers = {
-            "apikey": SUPABASE_API_KEY,
-            "Authorization": f"Bearer {SUPABASE_API_KEY}",
-            "Content-Type": "application/json"
-        }
+        # 使用新的API endpoint
+        api_url = "https://hai.lawted.tech/api/studentinfo"
 
-        # 发送请求查询用户信息
-        response = requests.get(
-            f"{supabase_url}/rest/v1/studentinfo?userid=eq.{user_id}&select=userid",
-            headers=headers
-        )
+        # 构建请求URL
+        url = f"{api_url}?userid={user_id}"
 
-        # 检查是否找到用户
+        # 发送GET请求查询用户信息
+        response = requests.get(url, timeout=10)
+
+        # 检查是否成功
         if response.status_code == 200:
             data = response.json()
-            return len(data) > 0
+            # 检查API返回的exists字段
+            return data.get('success', False) and data.get('exists', False)
         else:
-            logger.error(f"Supabase API 请求失败: {response.status_code}")
+            logger.error(f"API请求失败: {response.status_code}")
             return False
     except Exception as e:
-        logger.error(f"检查Supabase用户信息失败: {str(e)}")
+        logger.error(f"检查用户信息失败: {str(e)}")
         return False
 
 def main():
