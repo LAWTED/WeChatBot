@@ -27,6 +27,13 @@ import re
 from config import *
 import queue
 
+# 欢迎消息列表
+WELCOME_MESSAGES = [
+    "Hello同学你好呀～ 是要申请grad school嘛？",
+    "我先自我介绍下，我叫Alice，中文名李星煜，本科清华，博士毕业于Stanford，目前在Stanford做research scientist(其实就是俗称的博士后～)。",
+    "怎么称呼你比较好呀？我给你微信备注上。"
+]
+
 # 生成用户昵称列表和prompt映射字典
 user_names = [entry[0] for entry in LISTEN_LIST]
 prompt_mapping = {entry[0]: entry[1] for entry in LISTEN_LIST}
@@ -1078,6 +1085,61 @@ def manage_memory_capacity(user_file):
     except Exception as e:
         logger.error(f"记忆整理失败: {str(e)}")
 
+def send_welcome_messages():
+    """发送欢迎消息给没有对话历史的用户"""
+    logger.info("检查是否有需要发送欢迎消息的用户...")
+
+    for user in user_names:
+        # 检查是否有对话历史
+        has_history = False
+
+        # 检查内存中的对话历史
+        if user in chat_contexts and len(chat_contexts[user]) > 0:
+            has_history = True
+
+        # 检查是否有日志文件记录
+        if not has_history and ENABLE_MEMORY:
+            prompt_name = prompt_mapping.get(user, user)
+            log_file = os.path.join(root_dir, MEMORY_TEMP_DIR, f'{user}_{prompt_name}_log.txt')
+            if os.path.exists(log_file) and os.path.getsize(log_file) > 0:
+                has_history = True
+
+        # 如果没有历史记录，发送欢迎消息
+        if not has_history and not is_quiet_time():
+            logger.info(f"为用户 {user} 发送欢迎消息")
+
+            # 按顺序发送三条欢迎消息
+            for i, welcome_msg in enumerate(WELCOME_MESSAGES):
+                # 发送消息
+                wx.SendMsg(msg=welcome_msg, who=user)
+                logger.info(f"发送欢迎消息({i+1}/3) 给 {user}: {welcome_msg}")
+
+                # 添加到对话上下文
+                with queue_lock:
+                    if user not in chat_contexts:
+                        chat_contexts[user] = []
+                    chat_contexts[user].append({"role": "assistant", "content": welcome_msg})
+
+                # 记录到日志文件
+                if ENABLE_MEMORY:
+                    prompt_name = prompt_mapping.get(user, user)
+                    log_file = os.path.join(root_dir, MEMORY_TEMP_DIR, f'{user}_{prompt_name}_log.txt')
+                    log_entry = f"{datetime.now().strftime('%Y-%m-%d %A %H:%M:%S')} | [{prompt_name}] {welcome_msg}\n"
+
+                    with open(log_file, 'a', encoding='utf-8') as f:
+                        f.write(log_entry)
+
+                # 消息之间添加延迟，模拟打字速度
+                if i < len(WELCOME_MESSAGES) - 1:
+                    next_msg = WELCOME_MESSAGES[i + 1]
+                    delay = len(next_msg) * (AVERAGE_TYPING_SPEED + random.uniform(RANDOM_TYPING_SPEED_MIN, RANDOM_TYPING_SPEED_MAX))
+                    if delay < 2:
+                        delay = 2
+                    time.sleep(delay)
+
+            # 重置用户计时器
+            reset_user_timer(user)
+
 def main():
 
     try:
@@ -1096,6 +1158,9 @@ def main():
 
         global wx
         wx = WeChat()
+
+        # 发送欢迎消息给没有对话历史的用户
+        send_welcome_messages()
 
         listener_thread = threading.Thread(target=message_listener)
         listener_thread.daemon = True
