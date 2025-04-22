@@ -1086,29 +1086,15 @@ def manage_memory_capacity(user_file):
         logger.error(f"记忆整理失败: {str(e)}")
 
 def send_welcome_messages():
-    """发送欢迎消息给没有对话历史的用户"""
+    """发送欢迎消息给没有在数据库中的用户"""
     logger.info("检查是否有需要发送欢迎消息的用户...")
 
     for user in user_names:
-        # 检查是否有对话历史
-        has_history = False
-
-        # 检查内存中的对话历史
-        if user in chat_contexts and len(chat_contexts[user]) > 0:
-            has_history = True
-
-        # 检查是否有日志文件记录
-        if not has_history and ENABLE_MEMORY:
-            prompt_name = prompt_mapping.get(user, user)
-            log_file = os.path.join(root_dir, MEMORY_TEMP_DIR, f'{user}_{prompt_name}_log.txt')
-            if os.path.exists(log_file) and os.path.getsize(log_file) > 0:
-                has_history = True
-
-        # 检查Supabase数据库中是否有学生信息
+        # 只检查Supabase数据库中是否有学生信息
         has_student_info = check_student_info_in_supabase(user)
 
-        # 如果没有历史记录且不是安静时间，并且数据库中没有该用户信息，才发送欢迎消息
-        if not has_history and not is_quiet_time() and not has_student_info:
+        # 如果数据库中没有该用户信息，才发送欢迎消息
+        if not has_student_info:
             logger.info(f"为用户 {user} 发送欢迎消息")
 
             # 按顺序发送三条欢迎消息
@@ -1142,7 +1128,7 @@ def send_welcome_messages():
 
             # 重置用户计时器
             reset_user_timer(user)
-        elif has_student_info:
+        else:
             logger.info(f"用户 {user} 在Supabase数据库中已有信息，跳过欢迎消息")
 
 def check_student_info_in_supabase(user_id):
@@ -1217,7 +1203,7 @@ def main():
         logger.info("\033[32m开始运行BOT...\033[0m")
 
 
-        # 发送欢迎消息给没有对话历史的用户
+        # 发送欢迎消息给没有在数据库中的用户
         send_welcome_messages()
 
         while True:
